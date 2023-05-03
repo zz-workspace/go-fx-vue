@@ -1,0 +1,30 @@
+version: '3.3'
+services:
+  traefik:
+    image: "traefik:v2.5"
+    command:
+      - "--providers.docker"
+      # - "--providers.docker.exposedbydefault=false"
+      - "--entrypoints.web.address=:80"
+      - "--entrypoints.postgres.address=:5432" # PostgreSQL endpoint
+      # - "--entrypoints.websecure.address=:443"
+      - "--api.dashboard=true"
+      - "--api.insecure=true"
+      # - "--certificatesresolvers.myresolver.acme.tlschallenge=true"
+      # - "--certificatesresolvers.myresolver.acme.email=thanhduongbkdn2012@gmail.com"
+      # - "--certificatesresolvers.myresolver.acme.storage=acme.json"
+    ports:
+      - "80:80"
+      - "8080:8080"
+      - "5433:5432"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ./config/traefik.toml:/config.toml
+      - ./config/acme.json:/acme.json
+      # - "./traefik.yml:/etc/traefik/traefik.yml:ro"
+      # - "./acme.json:/acme.json"
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.api.entrypoints=web"
+      - "traefik.http.routers.api.rule=Host(`traefik.swarm.test`)"
+      - "traefik.http.routers.api.service=api@internal"

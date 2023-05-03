@@ -1,0 +1,77 @@
+# local ssl: https://github.com/Heziode/traefik-v2-https-ssl-localhost
+version: '3.8'
+services:
+  traefik-proxy:
+    image: traefik:v3.0.0-beta2
+    command:
+      - "--api.insecure=true"
+      - "--providers.docker=true"
+      - "--providers.docker.exposedbydefault=false"
+      # Endpoints setup
+      - "--entrypoints.postgres.address=:5432" # PostgreSQL endpoint
+      - "--entrypoints.redis.address=:6379" # Redis endpoint
+      - "--entrypoints.websecure.address=:443"
+      # - "--certificatesresolvers.myresolver.acme.tlschallenge=true"
+      #- "--certificatesresolvers.myresolver.acme.caserver=https://acme-staging-v02.api.letsencrypt.org/directory"
+      # - "--certificatesresolvers.myresolver.acme.email=thanhduongbdkn2014@gmail.com"
+      # - "--certificatesresolvers.myresolver.acme.storage=/letsencrypt/acme.json"
+    ports:
+      - "6969:8080" # Traefik dashboard
+      # - "5432:5432" # PostgreSQL port
+      # - "6379:6379" # Redis port
+      - "80:80"
+      - "443:443" # SSL port
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      # Map the static configuration into the container
+      - ./config/static.yml:/etc/traefik/traefik.yml:ro
+      # Map the dynamic configuration into the container
+      - ./config/dynamic.yml:/etc/traefik/dynamic.yml:ro
+      # Map the certificats into the container
+      - ./certs:/etc/certs:ro
+      # - "/letsencrypt:/letsencrypt"
+    networks:
+      - mynetwork
+  # minio:
+  #   image: quay.io/minio/minio
+  #   ports:
+  #     - '9000:9000'
+  #     - '9001:9001'
+  #   environment:
+  #     - MINIO_ROOT_USER=minio99
+  #     - MINIO_ROOT_PASSWORD=minio123
+  #   command: server /data --console-address ":9001"
+  
+  postgres:
+    image: "postgres:${MASTER_POSTGRES_VERSION}"
+    hostname: postgres_server
+    environment:
+      POSTGRES_DB: ${MASTER_POSTGRES_DB}
+      POSTGRES_USER: ${MASTER_POSTGRES_USER}
+      POSTGRES_PASSWORD: ${MASTER_POSTGRES_PASSWORD}
+      POSTGRES_ROOT_PASSWORD: ${MASTER_POSTGRES_ROOT_PASSWORD}
+    volumes:
+      - data:/var/lib/postgresql/data
+    ports:
+      - '5432:5432'
+    networks:
+      - mynetwork
+  # pgadmin:
+  #   container_name: pgadmin_container
+  #   image: dpage/pgadmin4
+  #   environment:
+  #     PGADMIN_DEFAULT_EMAIL: ${PGADMIN_DEFAULT_EMAIL:-pgadmin4@pgadmin.org}
+  #     PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_DEFAULT_PASSWORD:-admin}
+  #     PGADMIN_CONFIG_SERVER_MODE: 'False'
+  #   ports:
+  #     - "${PGADMIN_PORT:-5050}:80"
+  #   restart: unless-stopped
+
+networks:
+  mynetwork:
+    external: true
+    driver: overlay
+    attachable: true
+
+volumes:
+  data:
